@@ -1,7 +1,3 @@
-# This code is based on tutorial by slicktechies modified as needed to use oauth token from Twitch.
-# You can read more details at: https://www.junian.net/2017/01/how-to-record-twitch-streams.html
-# original code is from https://slicktechies.com/how-to-watchrecord-twitch-streams-using-livestreamer/
-
 import requests
 import os
 import time
@@ -14,20 +10,19 @@ import getopt
 class TwitchRecorder:
     def __init__(self):
         # global configuration
-        # You get your Client-ID with: curl -X GET 'https://id.twitch.tv/oauth2/validate' -H 'Authorization: Bearer OAUTH_TOKEN'
-        #self.client_id = "ADD_CLIENT_ID_HERE" 
-        #self.oauth_token = "ADD_OAUTH_TOKEN_HERE"
         self.ffmpeg_path = 'ffmpeg'
+        self.twitch_path = '/home/linuxbrew/.linuxbrew/bin/twitch'
         self.refresh = 15.0
-        self.root_path = "/home/..."
+        self.root_path = "/media/daten/recorder"
 
         # user configuration
-        self.username = "ADD_STREAMER"
+        self.username = "diedoni"
         self.quality = "best"
 
     def run(self):
         # path to recorded stream
         self.recorded_path = os.path.join(self.root_path, "recorded", self.username)
+
         # path to finished video, errors removed
         self.processed_path = os.path.join(self.root_path, "processed", self.username)
 
@@ -62,32 +57,69 @@ class TwitchRecorder:
         print("Checking for", self.username, "every", self.refresh, "seconds. Record with", self.quality, "quality.")
         self.loopcheck()
 
+    def check_user(self):
+        # 0: online,
+        # 1: offline,
+        # 2: not found,
+        # 3: error
+        info = None
+        status = 3
+        try:
+            proc = subprocess.Popen([self.twitch_path, "api", "get", "streams", "-q", "user_login=" + self.username], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+            data, err = proc.communicate()
+            print(data)
+            info = json.loads(data)
+            if 'type' in str(info):
+             status = 0
+            else:
+             status = 1
+            if ('type' not in info):
+             for element in info['data']:
+                if element['type'] == "live":
+                  status = 0
+                else:
+                  status = 1
+        except subprocess.CalledProcessError as err:
+            if err == 'Not Found' or err == 'Unprocessable Entity':
+                status = 2
+        return status, info
 
     def loopcheck(self):
         while True:
-            print(self.username, "checking if Stream is online and starting recording.")
-            filename = self.username + " - " + datetime.datetime.now().strftime("%Y-%m-%d %Hh%Mm%Ss") + ".mp4"
+            status, info = self.check_user()
+            if status == 2:
+                print("Username not found. Invalid username or typo.")
+                time.sleep(self.refresh)
+            elif status == 3:
+                print(datetime.datetime.now().strftime("%Hh%Mm%Ss")," ","unexpected error. will try again in 5 minutes.")
+                time.sleep(300)
+            elif status == 1:
+                print(self.username, "currently offline, checking again in", self.refresh, "seconds.")
+                time.sleep(self.refresh)
+            elif status == 0:
+                print(self.username, "online. Stream recording in session.")
+                filename = self.username + " - " + datetime.datetime.now().strftime("%Y-%m-%d %Hh%Mm%Ss") + " - " + info['data'][0]['title'] + ".mp4"
 
-            # clean filename from unecessary characters
-            filename = "".join(x for x in filename if x.isalnum() or x in [" ", "-", "_", "."])
-            recorded_filename = os.path.join(self.recorded_path, filename)
+                # clean filename from unecessary characters
+                filename = "".join(x for x in filename if x.isalnum() or x in [" ", "-", "_", "."])
 
-            # start streamlink process
-            subprocess.call(["streamlink", "--twitch-disable-hosting", "--twitch-disable-ads", "twitch.tv/" + self.username, self.quality, "-o", recorded_filename])
+                recorded_filename = os.path.join(self.recorded_path, filename)
 
-            print("Recording stream is done. Fixing video file.")
-            if(os.path.exists(recorded_filename) is True):
-                try:
-                    subprocess.call([self.ffmpeg_path, '-err_detect', 'ignore_err', '-i', recorded_filename, '-c', 'copy', os.path.join(self.processed_path, filename)])
-                    os.remove(recorded_filename)
-                except Exception as e:
-                    print(e)
-            else:
-                print("Skip fixing. File not found.")
+                # start streamlink process
+                subprocess.call(["streamlink", "--twitch-disable-hosting", "--twitch-disable-ads", "twitch.tv/" + self.username, self.quality, "-o", recorded_filename])
 
-            print("Fixing is done. Going back to checking..")
-    
-            time.sleep(self.refresh)
+                print("Recording stream is done. Fixing video file.")
+                if(os.path.exists(recorded_filename) is True):
+                    try:
+                        subprocess.call([self.ffmpeg_path, '-err_detect', 'ignore_err', '-i', recorded_filename, '-c', 'copy', os.path.join(self.processed_path, filename)])
+                        os.remove(recorded_filename)
+                    except Exception as e:
+                        print(e)
+                else:
+                    print("Skip fixing. File not found.")
+
+                print("Fixing is done. Going back to checking..")
+                time.sleep(self.refresh)
 
 def main(argv):
     twitch_recorder = TwitchRecorder()
