@@ -83,8 +83,8 @@ class TwitchRecorder:
                   status = 0
                 else:
                   status = 1
-        except subprocess.CalledProcessError as err:
-            if err == 'Not Found' or err == 'Unprocessable Entity':
+        except subprocess.CalledProcessError as e:
+            if e == 'Not Found' or e == 'Unprocessable Entity':
                 status = 3
         return status, info
 
