@@ -53,10 +53,15 @@ class TwitchRecorder:
                     print(e)
         except Exception as e:
             print(e)
-
-        print("Checking for", self.username, "every", self.refresh, "seconds. Record with", self.quality, "quality.")
-        self.loopcheck()
-
+        proc = subprocess.Popen([self.twitch_path, "api", "get", "users", "-q", "login=" + self.username], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        data_user, data_err = proc.communicate()
+        info_user = json.loads(data_user)
+        if 'id' in str(info_user):
+            print("Checking for", self.username, "every", self.refresh, "seconds. Record with", self.quality, "quality.")
+            self.loopcheck()
+        else:
+            print("Username not found. Invalid username or typo.")
+        
     def check_user(self):
         # 0: online,
         # 1: offline,
@@ -67,7 +72,6 @@ class TwitchRecorder:
         try:
             proc = subprocess.Popen([self.twitch_path, "api", "get", "streams", "-q", "user_login=" + self.username], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
             data, err = proc.communicate()
-            print(data)
             info = json.loads(data)
             if 'type' in str(info):
              status = 0
@@ -81,16 +85,13 @@ class TwitchRecorder:
                   status = 1
         except subprocess.CalledProcessError as err:
             if err == 'Not Found' or err == 'Unprocessable Entity':
-                status = 2
+                status = 3
         return status, info
 
     def loopcheck(self):
         while True:
             status, info = self.check_user()
-            if status == 2:
-                print("Username not found. Invalid username or typo.")
-                time.sleep(self.refresh)
-            elif status == 3:
+            if status == 3:
                 print(datetime.datetime.now().strftime("%Hh%Mm%Ss")," ","unexpected error. will try again in 5 minutes.")
                 time.sleep(300)
             elif status == 1:
