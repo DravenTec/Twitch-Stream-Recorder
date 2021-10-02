@@ -61,7 +61,9 @@ class TwitchRecorder:
             self.loopcheck()
         else:
             print("Username not found. Invalid username or typo.")
-        
+            print("Data: " + data_user)
+            print("Error: " + data_err)
+            
     def check_user(self):
         # 0: online,
         # 1: offline,
