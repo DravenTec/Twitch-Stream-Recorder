@@ -1,5 +1,5 @@
 # Twitch-Stream-Recorder
-Twitch Stream Recorder
+A customized version of [junian's twitch-recorder](https://gist.github.com/junian/b41dd8e544bf0e3980c971b0d015f5f6A), OAuth and API calls via twitch-cli.
 
 ## Requirements
 1. [python3.8](https://www.python.org/downloads/release/python-380/) or higher  
@@ -15,6 +15,8 @@ the streamer is live. If necessary the time can be reduced as long as you don't 
 To access the Twitch API it is necessary to install and configure the Twtich Cli. 
 
 ## tsrcontrol.sh
+Since I record various streams I made the tsrcontrol to make my life easier.
+
 Allows to easily create systemd services via the root account to create recorders.
 
 When starting the script you will be asked for the username to run tsr.py, 
