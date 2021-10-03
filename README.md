@@ -19,3 +19,5 @@ Allows to easily create systemd services via the root account to create recorder
 
 When starting the script you will be asked for the username to run tsr.py, 
 just put the tsr.py in the home folder of the user. Or adjust the path in the script.
+
+
