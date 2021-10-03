@@ -15,10 +15,11 @@ if [ -f ~/.tsrconf ]; then
         source ~/.tsrconf
 else
         read  -p "Please specify the non-root user to run tsr.py: " input_username
-        cat <<-EOFC >> ~/.tsrconf
-        user="$input_username"
-        streams=""
-        EOFC
+	cat <<-EOFC >> ~/.tsrconf
+	user="$input_username"
+	streams=""
+	EOFC
+	source ~/.tsrconf
 fi
 
 enable_streams () {
@@ -86,26 +87,26 @@ create_service () {
         echo ""
         read  -p "Please enter streamers name in lowercase: " streamer
         echo "tsr.py must be located under /home/$user/"
-        cat <<-EOF >> /etc/systemd/system/$streamer.service
-        [Unit]
-        Description=$streamer Recorder
-        After=syslog.target
-
-        [Service]
-        Type=simple
-        User=$user
-        Group=$user
-        WorkingDirectory=/home/$user
-        ExecStart=/usr/bin/python3 tsr.py -u $streamer
-        SyslogIdentifier=$streamer
-        StandardOutput=syslog
-        StandardError=syslog
-        Restart=always
-        RestartSec=3
-
-        [Install]
-        WantedBy=multi-user.target
-        EOF
+	cat <<-EOF >> /etc/systemd/system/$streamer.service
+	[Unit]
+	Description=$streamer Recorder
+	After=syslog.target
+	
+	[Service]
+	Type=simple
+	User=$user
+	Group=$user
+	WorkingDirectory=/home/$user
+	ExecStart=/usr/bin/python3 tsr.py -u $streamer
+	SyslogIdentifier=$streamer
+	StandardOutput=syslog
+	StandardError=syslog
+	Restart=always
+	RestartSec=3
+	
+	[Install]
+	WantedBy=multi-user.target
+	EOF
 
         sed -i "s/streams=\"$streams\"/streams=\"$streams $streamer\"/g" ~/.tsrconf
         echo "Enabling Streamrecorder for $streamer"
