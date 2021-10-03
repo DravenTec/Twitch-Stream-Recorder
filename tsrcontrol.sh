@@ -11,8 +11,8 @@ sys_status="systemctl status"
 sys_stop="systemctl stop"
 
 # Active Stream Recorder
-if [ -f ./.tsrconf ]; then
-        source ./.tsrconf
+if [ -f ~/.tsrconf ]; then
+        source ~/.tsrconf
 else
         read  -p "Please specify the non-root user to run tsr.py: " input_username
         cat <<-EOFC >> ~/.tsrconf
