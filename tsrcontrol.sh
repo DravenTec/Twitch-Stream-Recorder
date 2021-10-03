@@ -3,10 +3,6 @@
 # Twitch Stream Recorder - Automatic Run
 #
 
-# Default Configuration
-#user="draven"
-
-
 # systemctl enable/disable/start/stop/status
 sys_enable="systemctl enable"
 sys_disable="systemctl disable"
