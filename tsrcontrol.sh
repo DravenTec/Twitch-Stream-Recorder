@@ -4,7 +4,7 @@
 #
 
 # Default Configuration
-user="draven"
+#user="draven"
 
 
 # systemctl enable/disable/start/stop/status
@@ -17,6 +17,12 @@ sys_stop="systemctl stop"
 # Active Stream Recorder
 if [ -f ./.tsrconf ]; then
         source ./.tsrconf
+else
+        read  -p "Please specify the non-root user to run tsr.py: " input_username
+        cat <<-EOFC >> ~/.tsrconf
+        user="$input_username"
+        streams=""
+        EOFC
 fi
 
 enable_streams () {
@@ -82,9 +88,8 @@ show_recorder () {
 create_service () {
         clear
         echo ""
-        echo "Please enter streamers name in lowercase:"
+        read  -p "Please enter streamers name in lowercase: " streamer
         echo "tsr.py must be located under /home/$user/"
-        read streamer
         cat <<-EOF >> /etc/systemd/system/$streamer.service
         [Unit]
         Description=$streamer Recorder
@@ -106,12 +111,14 @@ create_service () {
         WantedBy=multi-user.target
         EOF
 
-        echo "streams=\"$streams $streamer\"" > ./.tsrconf
+        sed -i "s/streams=\"$streams\"/streams=\"$streams $streamer\"/g" ~/.tsrconf
         echo "Enabling Streamrecorder for $streamer"
         $sys_enable $streamer
         echo "Starting Streamrecorder for $streamer"
         $sys_start $streamer
         streams="$streams $streamer"
+        echo "Press any key to continue"
+        read;
 }
 
 while true; do
@@ -136,4 +143,3 @@ while true; do
         esac
     done
 done
-
