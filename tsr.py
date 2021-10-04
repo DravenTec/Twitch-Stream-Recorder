@@ -61,8 +61,6 @@ class TwitchRecorder:
             self.loopcheck()
         else:
             print("Username not found. Invalid username or typo.")
-            print("Data: " + data_user)
-            print("Error: " + data_err)
             
     def check_user(self):
         # 0: online,
@@ -126,7 +124,7 @@ class TwitchRecorder:
 
 def main(argv):
     twitch_recorder = TwitchRecorder()
-    usage_message = 'twitch-recorder.py -u <username> -q <quality>'
+    usage_message = 'tsr.py -u <username> -q <quality>'
 
     try:
         opts, args = getopt.getopt(argv,"hu:q:",["username=","quality="])
