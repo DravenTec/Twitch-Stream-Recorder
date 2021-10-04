@@ -76,7 +76,7 @@ show_recorder () {
     clear
     echo ""
     echo "Active recorders:"
-    ps ax | grep tsr | head -n -1
+    ps ax | grep tsr.py | head -n -1
     echo ""
     echo "Press any key to continue"
     read;
