@@ -1,3 +1,12 @@
+#
+# Twitch-Stream-Recorder
+#
+# Version adapted by Draventec to work with the new Twitch API
+#
+# Original by junian https://gist.github.com/junian/b41dd8e544bf0e3980c971b0d015f5f6
+# This code is based on tutorial by slicktechies modified as needed to use oauth token from Twitch.
+# You can read more details at: https://www.junian.net/2017/01/how-to-record-twitch-streams.html
+
 import requests
 import os
 import time
