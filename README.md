@@ -22,11 +22,12 @@ Tested under Ubuntu 20.04.3 LTS (Focal Fossa) and Debian 11 (Bullseye)
 4) Install Homebrew: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
 5) After installing Homebrew, run the two commands: `echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/$USER/.profile`
    and `eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"`
-   Optional: `brew install gcc`
+   - Optional: `brew install gcc`
 6) Install Twitch-Cli: `brew install twitchdev/twitch/twitch-cli`
 7) With the following command we now configure Twitch-Cli: `twitch configure`
-	You have to create a Twitch App https://dev.twitch.tv/ to get Client ID and Secret
-	Set OAUTH URL To http://localhost:3000 as Category use Application Integration
+	- You have to create a Twitch App https://dev.twitch.tv/ to get Client ID and Secret
+	- Set OAUTH URL To http://localhost:3000 as Category use Application Integration
 8) Download tsr.py and edit self.root_path = "YOUR_RECORDER_FOLDER": `nano tsr.py`
 9) Run with `python3 tsr.py -u STREAMERNAME`
-   Optional: tsrcontrol can also be used for administration.
+
+Optional: tsrcontrol can also be used for administration.
