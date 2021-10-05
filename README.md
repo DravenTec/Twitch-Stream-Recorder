@@ -29,5 +29,5 @@ Tested under Ubuntu 20.04.3 LTS (Focal Fossa) and Debian 11 (Bullseye)
 	- Set OAUTH URL To http://localhost:3000 as Category use Application Integration
 8) Download tsr.py and edit self.root_path = "YOUR_RECORDER_FOLDER": `nano tsr.py`
 9) Run with `python3 tsr.py -u STREAMERNAME`
-
-Optional: tsrcontrol can also be used for administration.
+	- Example: `python3 tsr.py - u diedoni` By default, recording is done with the best quality
+	- Optional: [tsrcontrol](https://github.com/DravenTec/tsrcontrol) can also be used for administration.
