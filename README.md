@@ -1,5 +1,5 @@
 # Twitch-Stream-Recorder
-A customized version of [junian's twitch-recorder](https://gist.github.com/junian/b41dd8e544bf0e3980c971b0d015f5f6A), OAuth and API calls via twitch-cli.
+A customized version of [junian's twitch-recorder](https://gist.github.com/junian/b41dd8e544bf0e3980c971b0d015f5f6), OAuth and API calls via twitch-cli.
 
 ## Requirements
 1. [python3.8](https://www.python.org/downloads/release/python-380/) or higher  
