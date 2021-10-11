@@ -30,4 +30,4 @@ Tested under Ubuntu 20.04.3 LTS (Focal Fossa) and Debian 11 (Bullseye)
 7) Download tsr.py and edit self.root_path = "YOUR_RECORDER_FOLDER": `nano tsr.py`
 8) Run with `python3 tsr.py -u STREAMERNAME`
 	- Example: `python3 tsr.py - u diedoni` By default, recording is done with the best quality
-	- Optional: [tsrcontrol](https://github.com/DravenTec/tsrcontrol) can also be used for administration.
+	- Optional: (WIP) [tsrcontrol](https://github.com/DravenTec/tsrcontrol) can also be used for administration.
