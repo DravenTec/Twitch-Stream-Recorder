@@ -31,3 +31,19 @@ Tested under Ubuntu 20.04.3 LTS (Focal Fossa) and Debian 11 (Bullseye)
 8) Run with `python3 tsr.py -u STREAMERNAME`
 	- Example: `python3 tsr.py - u diedoni` By default, recording is done with the best quality
 	- Optional: (WIP) [tsrcontrol](https://github.com/DravenTec/tsrcontrol) can also be used for administration.
+
+To ensure that the Twitch token is always renewed, I use Crontab and have the token updated once a week. 
+If you want to update it manually you can do that at any time with `twitch token`.
+
+Set up a cronjob under the user running tsr.py and twitch with `crontab -e`.
+In my case, I have the token renewed every Monday at 2am.
+`0 2 * * MON /home/linuxbrew/.linuxbrew/bin/twitch token > /home/YOUR_USERNAME/logs/twitch.log 2>&1`
+I have the output of the twitch token command written in a log file to have a clue in case of problems. 
+Note that the token itself is also entered here. 
+`mkdir ~/logs && touch ~/logs/twitch.log`
+
+Alternatively, simply omit the following part and it will also work without a log
+`0 2 * * MON /home/linuxbrew/.linuxbrew/bin/twitch token > /dev/null 2>&1`
+
+
+
