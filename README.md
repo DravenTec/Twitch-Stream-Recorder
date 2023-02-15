@@ -1,6 +1,13 @@
 # Twitch-Stream-Recorder
 A customized version of [junian's twitch-recorder](https://gist.github.com/junian/b41dd8e544bf0e3980c971b0d015f5f6), OAuth and API calls via twitch-cli.
 
+This script is a Python program for recording Twitch streams. 
+It uses the Twitch CLI, streamlink and FFmpeg to record and process the video files. The script is set to use the "best" quality for recording by default, 
+but you can specify other options such as "high", "medium", "low", and "mobile". The script will check if the user is online every 15 seconds by default, 
+but this value can be changed. If a user is online, the stream will be recorded and saved to a folder named after the user's username under the "recorded" folder. 
+The recorded files will then be processed to remove any errors and to adjust the moov atom header for quicker playback. The processed files will be saved in the "processed" folder under the same subfolder as the recorded files. The script will also check for any previously recorded files in the recorded folder and process 
+them if necessary.
+
 ## Requirements
 1. [python3.8](https://www.python.org/downloads/release/python-380/) or higher  
 2. [streamlink](https://streamlink.github.io/) newest Version
