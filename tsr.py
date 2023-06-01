@@ -150,7 +150,7 @@ class TwitchRecorder:
                 recorded_filename = os.path.join(self.recorded_path, filename)
 
                 # start streamlink process
-                subprocess.call(["streamlink", "--twitch-disable-hosting", "--twitch-disable-ads", "twitch.tv/" + self.username, self.quality, "-o", recorded_filename])
+                subprocess.call(["streamlink", "--twitch-api-header", "Client-ID=ue6666qo983tsx6so1t0vnawi233wa", "--twitch-disable-hosting", "--twitch-disable-ads", "twitch.tv/" + self.username, self.quality, "-o", recorded_filename])
 
                 print("Recording stream is done. Repairing the video file if necessary and moving the moov atom header for a quick start .")
                 if(os.path.exists(recorded_filename) is True):
