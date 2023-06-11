@@ -1,3 +1,7 @@
+![GitHub](https://img.shields.io/github/license/DravenTec/Twitch-Stream-Recorder)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/DravenTec/Twitch-Stream-Recorder)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/DravenTec/Twitch-Stream-Recorder)
+
 # Twitch-Stream-Recorder
 A customized version of [junian's twitch-recorder](https://gist.github.com/junian/b41dd8e544bf0e3980c971b0d015f5f6), OAuth and API calls via twitch-cli.
 
