@@ -1,16 +1,16 @@
 # Twitch Stream Recorder (tsr.py)
 #
-# Version: 1.1.1
+# Version: 1.2.0
 #
 # Developed by: DravenTec
 #
-# Based on the script by junian https://gist.github.com/junian/b41dd8e544bf0e3980c971b0d015f5f6, 
+# Based on the script by junian https://gist.github.com/junian/b41dd8e544bf0e3980c971b0d015f5f6,
 # this code has been further modified to use Twitch oauth token. You can read more details about
 # the original tutorial at: https://www.junian.net/2017/01/how-to-record-twitch-streams.html
 #
-# The script has been further modified to use the twitch-cli and added a processing of video files 
-# as a thread for faster starting of the recorder in case of stream problems, as there is no need 
-# to wait for video file processing. The video files are also directly adjusted to the "faststart" 
+# The script has been further modified to use the twitch-cli and added a processing of video files
+# as a thread for faster starting of the recorder in case of stream problems, as there is no need
+# to wait for video file processing. The video files are also directly adjusted to the "faststart"
 # video option.
 #
 
@@ -26,32 +26,42 @@ import threading
 
 class TwitchRecorder:
     def __init__(self):
-        # global configuration
+
+        # Global configuration
         #
-        # Default: ffmpeg
-        # If ffmpeg is not defined globally please specify the appropriate path
-        self.ffmpeg_path = 'ffmpeg'
-        #
-        # Default: /home/linuxbrew/.linuxbrew/bin/twitch
-        # If the installation instructions of Twitch-Cli were followed, the path does not need to be adjusted.
-        self.twitch_path = '/home/linuxbrew/.linuxbrew/bin/twitch'
-        #
-        # Default: 15
-        # Minimum value for checking if a streamer is online is 15 seconds, 
-        # values below that are automatically set to 15 regardless of the entered value.
-        self.refresh = 15.0
-        
-        # Recording folder
-        self.root_path = "/media/daten/recorder"
-        
+
+        # Please specify the folder where the recordings should be stored
+        self.root_path = "/media/"
+
         # Default settings when the script is executed without arguments
         #
         # Username corresponds to the streamers name, the name must be lowercase
         # Standard quality in which, the stream should be recorded
         # Quality Options: best, high, medium, low, mobile
-        self.username = "diedoni"
+        self.username = ""
         self.quality = "best"
-    
+
+        # Default: streamlink
+        # If Streamlink is running in a virtual environment, please specify the path to it.
+        self.streamlink = 'streamlink'
+
+        # Default: ffmpeg
+        # If ffmpeg is not defined globally please specify the appropriate path
+        self.ffmpeg_path = 'ffmpeg'
+
+        # Default: --twitch-api-header Client-ID=ue6666qo983tsx6so1t0vnawi233wa --twitch-disable-hosting --twitch-disable-ads
+        # Streamlink running arguments
+        self.streamlink_arg = '--twitch-api-header Client-ID=ue6666qo983tsx6so1t0vnawi233wa --twitch-disable-hosting --twitch-disable-ads'
+
+        # Default: /home/linuxbrew/.linuxbrew/bin/twitch
+        # If the installation instructions of Twitch-Cli were followed, the path does not need to be adjusted.
+        self.twitch_path = '/home/linuxbrew/.linuxbrew/bin/twitch'
+
+        # Default: 15.0
+        # Minimum value for checking if a streamer is online is 15 seconds,
+        # values below that are automatically set to 15 regardless of the entered value.
+        self.refresh = 15.0
+
     def fix_video_file(self, recorded_filename, processed_path, ffmpeg_path, filename):
         print("Repairing the video file if necessary and moving the moov atom header for quick start...")
         if(os.path.exists(recorded_filename) is True):
@@ -62,8 +72,11 @@ class TwitchRecorder:
                 print(e)
         else:
             print("Skip fixing. File not found.")
-    
+
     def run(self):
+        if not self.username:
+           self.username = input(f"Please specify a streamer (lowercase): ")
+
         # path to recorded stream
         self.recorded_path = os.path.join(self.root_path, "recorded", self.username)
 
@@ -104,7 +117,7 @@ class TwitchRecorder:
             self.loopcheck()
         else:
             print("Username not found. Invalid username or typo.")
-            
+
     def check_user(self):
         # 0: online,
         # 1: offline,
@@ -150,7 +163,7 @@ class TwitchRecorder:
                 recorded_filename = os.path.join(self.recorded_path, filename)
 
                 # start streamlink process
-                subprocess.call(["streamlink", "--twitch-api-header", "Client-ID=ue6666qo983tsx6so1t0vnawi233wa", "--twitch-disable-hosting", "--twitch-disable-ads", "twitch.tv/" + self.username, self.quality, "-o", recorded_filename])
+                subprocess.call([self.streamlink] + self.streamlink_arg.split() + ["twitch.tv/" + self.username, "--default-stream", self.quality, "-o", recorded_filename])
 
                 print("Recording stream is done. Repairing the video file if necessary and moving the moov atom header for a quick start .")
                 if(os.path.exists(recorded_filename) is True):
