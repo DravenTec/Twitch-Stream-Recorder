@@ -26,7 +26,7 @@ the streamer is live. If necessary the time can be reduced as long as you don't 
 To access the Twitch API it is necessary to install and configure the Twtich Cli. 
 
 ## Install Streamlink and Twitch Cli to run tsr.py
-Tested under Ubuntu 20.04.3 LTS (Focal Fossa) and Debian 11 (Bullseye)
+Tested under Ubuntu 20.04.3 LTS (Focal Fossa) and Debian 12 (Bookworm)
 1) Install Dependencies: `sudo apt install pip curl git`
 2) Install Streamlink: `sudo pip3 install streamlink`
 3) Install Homebrew:  
