@@ -2,15 +2,19 @@
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/DravenTec/Twitch-Stream-Recorder)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/DravenTec/Twitch-Stream-Recorder)
 
-# Twitch-Stream-Recorder
-A customized version of [junian's twitch-recorder](https://gist.github.com/junian/b41dd8e544bf0e3980c971b0d015f5f6), OAuth and API calls via twitch-cli.
+## Twitch Stream Recorder (tsr.py)
+Twitch Stream Recorder is a Python script for recording live streams from Twitch. 
+The script allows you to download the stream in various quality options, including audio-only, 
+and convert the audio to different formats. It also provides error handling and the ability to 
+save or delete original files after processing.
 
-This script is a Python program for recording Twitch streams. 
-It uses the Twitch CLI, streamlink and FFmpeg to record and process the video files. The script is set to use the "best" quality for recording by default, 
-but you can specify other options such as "high", "medium", "low", and "mobile". The script will check if the user is online every 15 seconds by default, 
-but this value can be changed. If a user is online, the stream will be recorded and saved to a folder named after the user's username under the "recorded" folder. 
-The recorded files will then be processed to remove any errors and to adjust the moov atom header for quicker playback. The processed files will be saved in the "processed" folder under the same subfolder as the recorded files. The script will also check for any previously recorded files in the recorded folder and process 
-them if necessary.
+Features:
+- Record Twitch streams in different qualities (best, high, medium, low, mobile, and audio_only).
+- Convert audio to formats like MP3, OGG, and AAC.
+- Post-processing options for video and audio files.
+- Automatic stream checking to start recording when a streamer goes live.
+- Error handling for stream recording, file conversion, and post-processing.
+- File management for saving or deleting original files after conversion.
 
 ## Requirements
 1. [python3.8](https://www.python.org/downloads/release/python-380/) or higher  
