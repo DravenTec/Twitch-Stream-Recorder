@@ -243,7 +243,7 @@ class TwitchStreamRecorder:
 
             if(os.path.exists(recorded_filename) is True):
                 try:
-                    thread = threading.Thread(target=self.fix_video_file, args=(recorded_filename, self.processed_path, self.ffmpeg_path, filename))
+                    thread = threading.Thread(target=self.fix_video_file, args=(recorded_filename, filename))
                     thread.start()
                 except Exception as e:
                     print(e)
