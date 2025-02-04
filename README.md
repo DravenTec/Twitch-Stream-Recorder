@@ -4,9 +4,8 @@
 
 ## Twitch Stream Recorder (tsr.py)
 Twitch Stream Recorder is a Python script for recording live streams from Twitch. 
-The script allows you to download the stream in various quality options, including audio-only, 
-and convert the audio to different formats. It also provides error handling and the ability to 
-save or delete original files after processing.
+The script allows you to record the stream in various quality options, including audio-only, 
+and convert the audio to different formats. 
 
 Features:
 - Record Twitch streams in different qualities (best, high, medium, low, mobile, and audio_only).
@@ -25,7 +24,7 @@ Features:
 ## tsr.py
 Starts recording as soon as the streamer is live. It is recommended that the streamer makes a "Starting soon" at the beginning. 
 It takes about 15-45 seconds before the Twitch API reports the status Live. Additionally tsr.py only checks every 15 seconds if 
-the streamer is live. If necessary the time can be reduced as long as you don't make too many requests.
+the streamer is live. 
 
 To access the Twitch API it is necessary to install and configure the Twtich Cli. 
 
