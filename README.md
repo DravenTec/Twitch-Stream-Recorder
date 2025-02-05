@@ -12,8 +12,6 @@ Features:
 - Convert audio to formats like MP3, OGG, and AAC.
 - Post-processing options for video and audio files.
 - Automatic stream checking to start recording when a streamer goes live.
-- Error handling for stream recording, file conversion, and post-processing.
-- File management for saving or deleting original files after conversion.
 
 ## Requirements
 1. [python3.8](https://www.python.org/downloads/release/python-380/) or higher  
