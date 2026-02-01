@@ -5,7 +5,6 @@
 # Version: 04.02.2025-2220
 # Developed by: DravenTec
 
-import requests
 import os
 import time
 import json
@@ -75,9 +74,9 @@ class TwitchStreamRecorder:
             else:
                 self.process_video_file(recorded_filename, cleaned_filename, filename)
         except subprocess.CalledProcessError as e:
-                        print(f"Error during video repair/convert: {e.returncode}")
-                        print(f"Standard error output: {e.stderr}")
-                        print(f"Standard output: {e.stdout}")
+            print(f"Error during video repair/convert: {e.returncode}")
+            print(f"Standard error output: {e.stderr}")
+            print(f"Standard output: {e.stdout}")
         except Exception as e:
             print(f"Error during file processing: {e}")
 
@@ -134,6 +133,13 @@ class TwitchStreamRecorder:
                 break
         return quality, filename
 
+    def sanitize_filename(self, name, max_length=180):
+        safe = "".join(x for x in name if x.isalnum() or x in [" ", "-", "_", "."]).strip()
+        safe = " ".join(safe.split())
+        if len(safe) > max_length:
+            safe = safe[:max_length].rstrip()
+        return safe
+
     def run(self):
         if not self.username:
            self.username = input(f"Please specify a streamer (lowercase): ")
@@ -173,7 +179,11 @@ class TwitchStreamRecorder:
             if usercheck.returncode != 0:
                 print(f"Error executing Twitch API command: {user_err}")
             else: 
-                info_user = json.loads(user_data)
+                try:
+                    info_user = json.loads(user_data)
+                except json.JSONDecodeError as e:
+                    print(f"Error parsing user data: {e}")
+                    return
                 if 'id' in info_user.get('data',[{}])[0]:
                     print(f"Checking for {self.username} every {self.refresh} seconds. Record with {self.quality} quality.")
                     running = True
@@ -203,7 +213,11 @@ class TwitchStreamRecorder:
             if streamcheck.returncode != 0:
                 print(f"Error executing Twitch API command: {stream_err}")
             else:
-                info = json.loads(stream_data)
+                try:
+                    info = json.loads(stream_data)
+                except json.JSONDecodeError as e:
+                    print(f"Error parsing stream data: {e}")
+                    return status, info
                 if 'data' in info and len(info['data']) > 0 and info['data'][0].get('type') == 'live':
                     status = 0
                 else:
@@ -230,7 +244,7 @@ class TwitchStreamRecorder:
                 filename = f"{self.username} - {datetime.datetime.now().strftime('%Y-%m-%d %Hh%Mm%Ss')} - {info['data'][0]['title']}_audioonly.ts"
             else:
                 filename = f"{self.username} - {datetime.datetime.now().strftime('%Y-%m-%d %Hh%Mm%Ss')} - {info['data'][0]['title']}_{self.quality}.ts"
-            filename = "".join(x for x in filename if x.isalnum() or x in [" ", "-", "_", "."])
+            filename = self.sanitize_filename(filename)
             recorded_filename = os.path.join(self.recorded_path, filename)
 
             try:
