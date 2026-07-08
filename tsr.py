@@ -2,7 +2,7 @@
 
 # Twitch Stream Recorder (tsr.py)
 #
-# Version: 01.02.2026-1130
+# Version: 08.07.2026-1200
 # Developed by: DravenTec
 
 import os
@@ -12,17 +12,19 @@ import sys
 import subprocess
 import datetime
 import getopt
-import threading
 import shutil
+from concurrent.futures import ThreadPoolExecutor
 
 class TwitchStreamRecorder:
     def __init__(self):
 
         # Global configuration
+        # Every setting below can also be overridden with the environment
+        # variable named in its comment, without editing this file.
 
-        # Please specify the folder where the recordings should be stored
+        # TSR_ROOT_PATH: folder where the recordings should be stored
         # Example: /home/username/recording/
-        self.root_path = "/recording/"
+        self.root_path = os.environ.get("TSR_ROOT_PATH", "/recording/")
 
         # Default settings when the script is executed without arguments
         # Username corresponds to the streamers name, the name must be lowercase
@@ -37,26 +39,31 @@ class TwitchStreamRecorder:
         # OGG Quality: 0 (lowest) to 10 (highest)
         self.ogg_quality = '5'
 
-        # Default: streamlink
+        # TSR_STREAMLINK - Default: streamlink
         # If Streamlink is running in a virtual environment, please specify the path to it.
-        self.streamlink = 'streamlink'
+        self.streamlink = os.environ.get("TSR_STREAMLINK", 'streamlink')
 
-        # Default: ffmpeg
+        # TSR_FFMPEG - Default: ffmpeg
         # If ffmpeg is not defined globally please specify the appropriate path
-        self.ffmpeg_path = 'ffmpeg'
+        self.ffmpeg_path = os.environ.get("TSR_FFMPEG", 'ffmpeg')
 
+        # TSR_STREAMLINK_ARG
         # Default: --twitch-api-header Client-ID=ue6666qo983tsx6so1t0vnawi233wa --twitch-disable-hosting --twitch-disable-ads
         # Streamlink running arguments
-        self.streamlink_arg = '--twitch-api-header Client-ID=ue6666qo983tsx6so1t0vnawi233wa --twitch-disable-hosting --twitch-disable-ads'
+        self.streamlink_arg = os.environ.get("TSR_STREAMLINK_ARG", '--twitch-api-header Client-ID=ue6666qo983tsx6so1t0vnawi233wa --twitch-disable-hosting --twitch-disable-ads')
 
-        # Default: /home/linuxbrew/.linuxbrew/bin/twitch
+        # TSR_TWITCH_CLI - Default: /home/linuxbrew/.linuxbrew/bin/twitch
         # If the installation instructions of Twitch-Cli were followed, the path does not need to be adjusted.
-        self.twitch_path = '/home/linuxbrew/.linuxbrew/bin/twitch'
+        self.twitch_path = os.environ.get("TSR_TWITCH_CLI", '/home/linuxbrew/.linuxbrew/bin/twitch')
 
-        # Default: 15.0
+        # TSR_REFRESH - Default: 15.0
         # Minimum value for checking if a streamer is online is 15 seconds,
         # values below that are automatically set to 15 regardless of the entered value.
-        self.refresh = 15.0
+        try:
+            self.refresh = float(os.environ.get("TSR_REFRESH", 15.0))
+        except ValueError:
+            print(f"Invalid TSR_REFRESH value, falling back to 15 seconds.")
+            self.refresh = 15.0
 
         # For file post-processing
         self.quality_suffixes = ['_audioonly', '_best', '_high', '_medium', '_low', '_mobile']
@@ -64,6 +71,9 @@ class TwitchStreamRecorder:
         self.valid_audio = ['mp3', 'ogg', 'aac']
         self.audio = ""
         self.savefile = "yes"
+
+        # Limits how many ffmpeg post-processing jobs run at the same time
+        self.executor = ThreadPoolExecutor(max_workers=2)
 
     def fix_video_file(self, recorded_filename, filename):
         print(f"Processing file: {filename}")
@@ -127,9 +137,9 @@ class TwitchStreamRecorder:
     def get_quality_from_filename(self, filename):
         quality = 'best'
         for suffix in self.quality_suffixes:
-            if suffix in filename:
+            if filename.endswith(suffix + '.ts'):
                 quality = suffix.strip('_')
-                filename = filename.replace(suffix + '.ts', '.ts')
+                filename = filename[:-len(suffix + '.ts')] + '.ts'
                 break
         return quality, filename
 
@@ -163,17 +173,13 @@ class TwitchStreamRecorder:
                 print(f"Fixing previously recorded files.")
             for f in video_list:
                 recorded_filename = os.path.join(self.recorded_path, f)
-                try:
-                    thread = threading.Thread(target=self.fix_video_file, args=(recorded_filename, f))
-                    thread.start()
-                except Exception as e:
-                    print(e)
+                self.executor.submit(self.fix_video_file, recorded_filename, f)
         except Exception as e:
             print(e)
 
         try:
             twcli_usercheck = [self.twitch_path, "api", "get", "users", "-q", f"login={self.username}"]
-            usercheck = subprocess.run(twcli_usercheck, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+            usercheck = subprocess.run(twcli_usercheck, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             user_data = usercheck.stdout
             user_err = usercheck.stderr
             if usercheck.returncode != 0:
@@ -193,10 +199,16 @@ class TwitchStreamRecorder:
                                 self.loopcheck()
                             except KeyboardInterrupt:
                                 running = False
-                    except Exception as e:
-                            print(f"An error occurred: {e}")
+                            except Exception as e:
+                                print(f"An unexpected error occurred: {e}. Retrying in 5 minutes.")
+                                try:
+                                    time.sleep(300)
+                                except KeyboardInterrupt:
+                                    running = False
                     finally:
-                        print(f"Twitch Stream Recorder... closeing.")
+                        print(f"Waiting for running post-processing jobs to finish...")
+                        self.executor.shutdown(wait=True)
+                        print(f"Twitch Stream Recorder... closing.")
                 else:
                     print(f"Username not found. Invalid username or typo.")
         except Exception as e:
@@ -207,11 +219,14 @@ class TwitchStreamRecorder:
         status = 3
         try:
             twcli_streamcheck = [self.twitch_path, "api", "get", "streams", "-q", f"user_login={self.username}"]
-            streamcheck = subprocess.run(twcli_streamcheck, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+            streamcheck = subprocess.run(twcli_streamcheck, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             stream_data = streamcheck.stdout
             stream_err = streamcheck.stderr
             if streamcheck.returncode != 0:
-                print(f"Error executing Twitch API command: {stream_err}")
+                if 'Not Found' in stream_err or 'Unprocessable Entity' in stream_err:
+                    status = 2
+                else:
+                    print(f"Error executing Twitch API command: {stream_err}")
             else:
                 try:
                     info = json.loads(stream_data)
@@ -222,18 +237,17 @@ class TwitchStreamRecorder:
                     status = 0
                 else:
                     status = 1
-                        
-        except subprocess.CalledProcessError as e:
-            if 'Not Found' in str(e) or 'Unprocessable Entity' in str(e):
-                status = 2
-            else:
-                status = 3
+        except Exception as e:
+            print(f"Error calling Twitch API: {e}")
         return status, info
 
     def loopcheck(self):
         status, info = self.check_user()
         if status == 3:
             print(f"{datetime.datetime.now().strftime('%Hh%Mm%Ss')} unexpected error. will try again in 5 minutes.")
+            time.sleep(300)
+        elif status == 2:
+            print(f"Username not found. Invalid username or typo. Checking again in 5 minutes.")
             time.sleep(300)
         elif status == 1:
             print(f"{self.username} currently offline, checking again in {self.refresh} seconds.")
@@ -256,11 +270,7 @@ class TwitchStreamRecorder:
                 print(f"Standard output: {e.stdout}")
 
             if(os.path.exists(recorded_filename) is True):
-                try:
-                    thread = threading.Thread(target=self.fix_video_file, args=(recorded_filename, filename))
-                    thread.start()
-                except Exception as e:
-                    print(e)
+                self.executor.submit(self.fix_video_file, recorded_filename, filename)
             else:
                 print(f"Skip fixing. File not found.")
                 print(f"Fixing is done. Going back to checking..")
