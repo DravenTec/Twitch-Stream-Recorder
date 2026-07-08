@@ -19,12 +19,17 @@ class TwitchStreamRecorder:
     def __init__(self):
 
         # Global configuration
-        # Every setting below can also be overridden with the environment
-        # variable named in its comment, without editing this file.
+        # Every setting below can be overridden without editing this file,
+        # either with the environment variable named in its comment or with
+        # the same key in the config file (default: ~/.config/tsr/config,
+        # overridable via TSR_CONFIG). Format: one KEY=VALUE per line,
+        # '#' starts a comment. Precedence: environment variable > config
+        # file > built-in default.
+        self._config = self.load_config()
 
         # TSR_ROOT_PATH: folder where the recordings should be stored
         # Example: /home/username/recording/
-        self.root_path = os.environ.get("TSR_ROOT_PATH", "/recording/")
+        self.root_path = self.get_setting("TSR_ROOT_PATH", "/recording/")
 
         # Default settings when the script is executed without arguments
         # Username corresponds to the streamers name, the name must be lowercase
@@ -41,26 +46,26 @@ class TwitchStreamRecorder:
 
         # TSR_STREAMLINK - Default: streamlink
         # If Streamlink is running in a virtual environment, please specify the path to it.
-        self.streamlink = os.environ.get("TSR_STREAMLINK", 'streamlink')
+        self.streamlink = self.get_setting("TSR_STREAMLINK", 'streamlink')
 
         # TSR_FFMPEG - Default: ffmpeg
         # If ffmpeg is not defined globally please specify the appropriate path
-        self.ffmpeg_path = os.environ.get("TSR_FFMPEG", 'ffmpeg')
+        self.ffmpeg_path = self.get_setting("TSR_FFMPEG", 'ffmpeg')
 
         # TSR_STREAMLINK_ARG
         # Default: --twitch-api-header Client-ID=ue6666qo983tsx6so1t0vnawi233wa --twitch-disable-hosting --twitch-disable-ads
         # Streamlink running arguments
-        self.streamlink_arg = os.environ.get("TSR_STREAMLINK_ARG", '--twitch-api-header Client-ID=ue6666qo983tsx6so1t0vnawi233wa --twitch-disable-hosting --twitch-disable-ads')
+        self.streamlink_arg = self.get_setting("TSR_STREAMLINK_ARG", '--twitch-api-header Client-ID=ue6666qo983tsx6so1t0vnawi233wa --twitch-disable-hosting --twitch-disable-ads')
 
         # TSR_TWITCH_CLI - Default: /home/linuxbrew/.linuxbrew/bin/twitch
         # If the installation instructions of Twitch-Cli were followed, the path does not need to be adjusted.
-        self.twitch_path = os.environ.get("TSR_TWITCH_CLI", '/home/linuxbrew/.linuxbrew/bin/twitch')
+        self.twitch_path = self.get_setting("TSR_TWITCH_CLI", '/home/linuxbrew/.linuxbrew/bin/twitch')
 
         # TSR_REFRESH - Default: 15.0
         # Minimum value for checking if a streamer is online is 15 seconds,
         # values below that are automatically set to 15 regardless of the entered value.
         try:
-            self.refresh = float(os.environ.get("TSR_REFRESH", 15.0))
+            self.refresh = float(self.get_setting("TSR_REFRESH", 15.0))
         except ValueError:
             print(f"Invalid TSR_REFRESH value, falling back to 15 seconds.")
             self.refresh = 15.0
@@ -78,6 +83,33 @@ class TwitchStreamRecorder:
         # scheduled on this executor, so recording can never be delayed by
         # queued post-processing jobs.
         self.executor = ThreadPoolExecutor(max_workers=2)
+
+    def load_config(self):
+        config = {}
+        config_path = os.environ.get("TSR_CONFIG") or os.path.join(
+            os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "tsr", "config")
+        try:
+            with open(config_path) as f:
+                for lineno, line in enumerate(f, start=1):
+                    line = line.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                    if '=' not in line:
+                        print(f"Ignoring invalid line {lineno} in config file {config_path}: {line}")
+                        continue
+                    key, value = line.split('=', 1)
+                    config[key.strip()] = value.strip()
+        except FileNotFoundError:
+            pass
+        except OSError as e:
+            print(f"Warning: could not read config file {config_path}: {e}")
+        return config
+
+    def get_setting(self, name, default):
+        value = os.environ.get(name)
+        if value is None:
+            value = self._config.get(name, default)
+        return value
 
     def fix_video_file(self, recorded_filename, filename):
         print(f"Processing file: {filename}")

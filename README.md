@@ -14,7 +14,7 @@ Features:
 - Convert audio to formats like MP3, OGG, and AAC.
 - Unfinished recordings from a previous run are picked up and processed automatically at startup.
 - Post-processing runs in the background (max. 2 parallel ffmpeg jobs) and never delays or blocks a recording.
-- Configurable via environment variables — no need to edit the script.
+- Configurable via config file (`~/.config/tsr/config`) or environment variables — no need to edit the script.
 
 ## Requirements
 1. [python3.8](https://www.python.org/downloads/release/python-380/) or higher
@@ -61,17 +61,36 @@ python3 tsr.py -u diedoni -q audio_only -a ogg -s no
 Optional: (WIP) [tsrcontrol](https://github.com/DravenTec/tsrcontrol) can also be used for administration.
 
 ## Configuration
-All settings have sensible defaults and can be overridden with environment variables,
-so the script itself does not need to be edited:
+All settings have sensible defaults and can be overridden without editing the script —
+either with a config file or with environment variables. The precedence is:
 
-| Environment variable | Default | Description |
-| -------------------- | ------- | ----------- |
+**environment variable > config file > built-in default**
+
+### Config file
+tsr.py looks for `~/.config/tsr/config` (respecting `XDG_CONFIG_HOME`); an alternative
+path can be set with the `TSR_CONFIG` environment variable. The format is one
+`KEY=VALUE` per line, `#` starts a comment:
+
+```ini
+# ~/.config/tsr/config
+TSR_ROOT_PATH=/home/username/recording/
+TSR_REFRESH=30
+TSR_TWITCH_CLI=/home/linuxbrew/.linuxbrew/bin/twitch
+```
+
+### Environment variables
+The same keys can be set as environment variables, which take precedence over
+the config file:
+
+| Key | Default | Description |
+| --- | ------- | ----------- |
 | `TSR_ROOT_PATH` | `/recording/` | Folder where recordings are stored. |
 | `TSR_STREAMLINK` | `streamlink` | Path to the streamlink binary (e.g. inside a virtualenv). |
 | `TSR_FFMPEG` | `ffmpeg` | Path to the ffmpeg binary. |
 | `TSR_STREAMLINK_ARG` | see tsr.py | Extra arguments passed to streamlink. |
 | `TSR_TWITCH_CLI` | `/home/linuxbrew/.linuxbrew/bin/twitch` | Path to the Twitch CLI binary. |
 | `TSR_REFRESH` | `15.0` | Check interval in seconds (minimum 15). |
+| `TSR_CONFIG` | `~/.config/tsr/config` | Path to the config file (environment variable only). |
 
 Example:
 ```bash
@@ -97,8 +116,9 @@ Tested under Ubuntu 20.04.3 LTS (Focal Fossa) and Debian 12 (Bookworm)
 	- You have to create a Twitch App at https://dev.twitch.tv/ to get Client ID and Secret
 	- Set OAuth URL to http://localhost:3000 and use Application Integration as category
 7) After `twitch configure` run `twitch token` once
-8) Download tsr.py and set your recording folder, either via environment variable
-   (`TSR_ROOT_PATH=/your/recorder/folder/`) or by editing `self.root_path` in `tsr.py`
+8) Download tsr.py and set your recording folder, either in the config file
+   (`TSR_ROOT_PATH=/your/recorder/folder/` in `~/.config/tsr/config`), via the
+   environment variable of the same name, or by editing `self.root_path` in `tsr.py`
 9) Run with `python3 tsr.py -u STREAMERNAME`
 
 ## Automatic token renewal
