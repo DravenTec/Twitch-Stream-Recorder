@@ -72,7 +72,11 @@ class TwitchStreamRecorder:
         self.audio = ""
         self.savefile = "yes"
 
-        # Limits how many ffmpeg post-processing jobs run at the same time
+        # Limits how many ffmpeg post-processing jobs run at the same time.
+        # This pool is used ONLY for post-processing (fix_video_file): the
+        # streamlink recording runs in the main thread and must never be
+        # scheduled on this executor, so recording can never be delayed by
+        # queued post-processing jobs.
         self.executor = ThreadPoolExecutor(max_workers=2)
 
     def fix_video_file(self, recorded_filename, filename):
