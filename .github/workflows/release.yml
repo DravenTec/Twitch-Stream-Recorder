@@ -1,0 +1,24 @@
+name: Attach release assets
+
+# When a release is published, attach the tsr.py script from the tagged
+# commit as a release asset — no manual upload needed, and the asset always
+# matches the repository state of the tag.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - name: Upload script to release
+        run: gh release upload "$TAG" tsr.py --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
