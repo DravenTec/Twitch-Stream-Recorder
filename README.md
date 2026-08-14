@@ -10,7 +10,7 @@ and convert the audio to different formats.
 Features:
 - Record Twitch streams in different qualities (best, high, medium, low, mobile, and audio_only).
 - Automatic stream checking to start recording when a streamer goes live.
-- Post-processing: recordings are repaired and remuxed to MP4 (`-c copy`, `faststart`) after the stream ends.
+- Post-processing: recordings are repaired and remuxed to MP4 (`-c copy`, `faststart`) after the stream ends; audio-only recordings are remuxed to `.aac`.
 - Convert audio to formats like MP3, OGG, and AAC.
 - Unfinished recordings from a previous run are picked up and processed automatically at startup.
 - Post-processing runs in the background (max. 2 parallel ffmpeg jobs) and never delays or blocks a recording.
@@ -42,9 +42,9 @@ python3 tsr.py -u <username> [-q <quality>] [-a <audio format>] [-s <yes|no>]
 | ------ | ----------- |
 | `-h`, `--help` | Display the help message and exit. |
 | `-u`, `--username` | The Twitch streamer's username, lowercase (required; you will be prompted if omitted). |
-| `-q`, `--quality` | Stream quality: `best`, `high`, `medium`, `low`, `mobile`, `audio_only`. Default: `best`. |
+| `-q`, `--quality` | Stream quality: `best`, `high`, `medium`, `low`, `mobile`, `audio_only`. Default: `best`. Twitch no longer exposes the legacy names `high`/`medium`/`low`/`mobile` (streams are called e.g. `720p60`, `480p30` today), so these are mapped to the best available stream up to 720p/480p/360p/160p. |
 | `-a`, `--audio` | Additionally convert the audio track: `mp3`, `ogg` or `aac`. |
-| `-s`, `--savefile` | Keep (`yes`, default) or delete (`no`) the original recording after audio conversion. |
+| `-s`, `--savefile` | Keep (`yes`, default) or delete (`no`) the original recording after audio conversion. With `-a aac` the original is always removed — the converted file already is an identical copy of the audio. |
 
 Examples:
 ```bash

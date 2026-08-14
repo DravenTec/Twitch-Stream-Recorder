@@ -2,7 +2,7 @@
 
 # Twitch Stream Recorder (tsr.py)
 #
-# Version: 08.07.2026-1200
+# Version: 15.08.2026-0050
 # Developed by: DravenTec
 
 import os
@@ -12,7 +12,6 @@ import sys
 import subprocess
 import datetime
 import getopt
-import shutil
 from concurrent.futures import ThreadPoolExecutor
 
 class TwitchStreamRecorder:
@@ -53,9 +52,12 @@ class TwitchStreamRecorder:
         self.ffmpeg_path = self.get_setting("TSR_FFMPEG", 'ffmpeg')
 
         # TSR_STREAMLINK_ARG
-        # Default: --twitch-api-header Client-ID=ue6666qo983tsx6so1t0vnawi233wa --twitch-disable-hosting --twitch-disable-ads
+        # Default: --twitch-api-header Client-ID=ue6666qo983tsx6so1t0vnawi233wa
         # Streamlink running arguments
-        self.streamlink_arg = self.get_setting("TSR_STREAMLINK_ARG", '--twitch-api-header Client-ID=ue6666qo983tsx6so1t0vnawi233wa --twitch-disable-hosting --twitch-disable-ads')
+        # (--twitch-disable-hosting and --twitch-disable-ads were dropped:
+        # hosting is gone since Streamlink 5.0 and ads are always filtered
+        # since 7.5 - both flags are silent no-ops today.)
+        self.streamlink_arg = self.get_setting("TSR_STREAMLINK_ARG", '--twitch-api-header Client-ID=ue6666qo983tsx6so1t0vnawi233wa')
 
         # TSR_TWITCH_CLI - Default: /home/linuxbrew/.linuxbrew/bin/twitch
         # If the installation instructions of Twitch-Cli were followed, the path does not need to be adjusted.
@@ -73,6 +75,13 @@ class TwitchStreamRecorder:
         # For file post-processing
         self.quality_suffixes = ['_audioonly', '_best', '_high', '_medium', '_low', '_mobile']
         self.valid_qualities = ['best', 'high', 'medium', 'low', 'mobile', 'audio_only']
+
+        # Twitch stopped exposing the high/medium/low/mobile stream names
+        # years ago; today the names are e.g. 1080p60, 720p60, 480p30 and
+        # the fps suffix varies per channel. Instead of hardcoding names,
+        # cap the selection with --stream-sorting-excludes and record the
+        # best stream below the cap.
+        self.quality_caps = {'high': '>720p', 'medium': '>480p', 'low': '>360p', 'mobile': '>160p'}
         self.valid_audio = ['mp3', 'ogg', 'aac']
         self.audio = ""
         self.savefile = "yes"
@@ -120,24 +129,29 @@ class TwitchStreamRecorder:
             else:
                 self.process_video_file(recorded_filename, cleaned_filename, filename)
         except subprocess.CalledProcessError as e:
-            print(f"Error during video repair/convert: {e.returncode}")
-            print(f"Standard error output: {e.stderr}")
-            print(f"Standard output: {e.stdout}")
+            print(f"Error during video repair/convert, ffmpeg exited with {e.returncode}")
         except Exception as e:
             print(f"Error during file processing: {e}")
 
     def process_audio_file(self, recorded_filename, cleaned_filename, filename):
         if self.audio in self.valid_audio:
             self.audio_convert(recorded_filename, cleaned_filename)
-            if self.savefile == 'yes':
-                original_aac_filename = cleaned_filename.replace(".ts", ".aac")
-                shutil.move(recorded_filename, os.path.join(self.processed_path, original_aac_filename))
+            if self.savefile == 'yes' and self.audio != 'aac':
+                self.remux_audio(recorded_filename, cleaned_filename)
             else:
+                # For 'aac' the converted file is already a copy of the
+                # original audio, keeping the .ts as well would just
+                # duplicate it under the same target name.
                 os.remove(recorded_filename)
         else:
-            new_filename = cleaned_filename.replace(".ts", ".aac")
-            shutil.move(recorded_filename, os.path.join(self.processed_path, new_filename))
-            print(f"Audio file {filename} renamed to {new_filename} and moved to processed folder.")
+            self.remux_audio(recorded_filename, cleaned_filename)
+
+    def remux_audio(self, recorded_filename, cleaned_filename):
+        new_filename = self.replace_ts_suffix(cleaned_filename, ".aac")
+        ffmpeg_remux = [self.ffmpeg_path, '-y', '-err_detect', 'ignore_err', '-i', recorded_filename, '-vn', '-acodec', 'copy', os.path.join(self.processed_path, new_filename)]
+        subprocess.run(ffmpeg_remux, check=True, stdout=sys.stdout, stderr=sys.stderr, text=True)
+        os.remove(recorded_filename)
+        print(f"Audio remuxed to {new_filename} and moved to processed folder.")
 
 
     def process_video_file(self, recorded_filename, cleaned_filename, filename):
@@ -152,24 +166,31 @@ class TwitchStreamRecorder:
 
 
     def video_check(self,recorded_filename,cleaned_filename,filename):
-        new_filename = cleaned_filename.replace(".ts", ".mp4")
-        ffmpeg_video = [self.ffmpeg_path, '-err_detect', 'ignore_err', '-i', recorded_filename, '-c', 'copy', '-movflags', 'faststart', os.path.join(self.processed_path, new_filename)]
+        new_filename = self.replace_ts_suffix(cleaned_filename, ".mp4")
+        ffmpeg_video = [self.ffmpeg_path, '-y', '-err_detect', 'ignore_err', '-i', recorded_filename, '-c', 'copy', '-movflags', 'faststart', os.path.join(self.processed_path, new_filename)]
         subprocess.run(ffmpeg_video, check=True, stdout=sys.stdout, stderr=sys.stderr, text=True)
         os.remove(recorded_filename)
         print(f"Video file {filename} repaired, converted to {new_filename} and moved to processed folder.")
             
     def audio_convert(self,recorded_filename,cleaned_filename):
-        new_filename = cleaned_filename.replace(".ts", f".{self.audio}")
+        new_filename = self.replace_ts_suffix(cleaned_filename, f".{self.audio}")
         ffmpeg_audio =[]
         if self.audio == 'mp3':
-            ffmpeg_audio = [self.ffmpeg_path, '-err_detect', 'ignore_err', '-i', recorded_filename, '-codec:a', 'libmp3lame', '-qscale:a', self.mp3_quality, os.path.join(self.processed_path, new_filename)]
+            ffmpeg_audio = [self.ffmpeg_path, '-y', '-err_detect', 'ignore_err', '-i', recorded_filename, '-codec:a', 'libmp3lame', '-qscale:a', self.mp3_quality, os.path.join(self.processed_path, new_filename)]
         if self.audio == 'ogg':
-            ffmpeg_audio = [self.ffmpeg_path, '-err_detect', 'ignore_err', '-i', recorded_filename, '-codec:a', 'libvorbis', '-qscale:a', self.ogg_quality, os.path.join(self.processed_path, new_filename)]
+            ffmpeg_audio = [self.ffmpeg_path, '-y', '-err_detect', 'ignore_err', '-i', recorded_filename, '-codec:a', 'libvorbis', '-qscale:a', self.ogg_quality, os.path.join(self.processed_path, new_filename)]
         if self.audio == 'aac':
-            ffmpeg_audio = [self.ffmpeg_path, '-err_detect', 'ignore_err', '-i', recorded_filename, '-vn', '-acodec', 'copy', os.path.join(self.processed_path, new_filename)]
+            ffmpeg_audio = [self.ffmpeg_path, '-y', '-err_detect', 'ignore_err', '-i', recorded_filename, '-vn', '-acodec', 'copy', os.path.join(self.processed_path, new_filename)]
         subprocess.run(ffmpeg_audio, check=True, stdout=sys.stdout, stderr=sys.stderr, text=True)
         print(f"Audio file converted to {self.audio} renamed to {new_filename} and moved to processed folder.")
             
+    def replace_ts_suffix(self, filename, new_ext):
+        # Only touch the trailing extension - str.replace would also hit a
+        # ".ts" inside the stream title.
+        if filename.endswith(".ts"):
+            return filename[:-3] + new_ext
+        return filename
+
     def get_quality_from_filename(self, filename):
         quality = 'best'
         for suffix in self.quality_suffixes:
@@ -226,7 +247,8 @@ class TwitchStreamRecorder:
                 except json.JSONDecodeError as e:
                     print(f"Error parsing user data: {e}")
                     return
-                if 'id' in info_user.get('data',[{}])[0]:
+                user_data_list = info_user.get('data') or []
+                if user_data_list and 'id' in user_data_list[0]:
                     print(f"Checking for {self.username} every {self.refresh} seconds. Record with {self.quality} quality.")
                     running = True
                     try:
@@ -259,10 +281,7 @@ class TwitchStreamRecorder:
             stream_data = streamcheck.stdout
             stream_err = streamcheck.stderr
             if streamcheck.returncode != 0:
-                if 'Not Found' in stream_err or 'Unprocessable Entity' in stream_err:
-                    status = 2
-                else:
-                    print(f"Error executing Twitch API command: {stream_err}")
+                print(f"Error executing Twitch API command: {stream_err}")
             else:
                 try:
                     info = json.loads(stream_data)
@@ -282,9 +301,6 @@ class TwitchStreamRecorder:
         if status == 3:
             print(f"{datetime.datetime.now().strftime('%Hh%Mm%Ss')} unexpected error. will try again in 5 minutes.")
             time.sleep(300)
-        elif status == 2:
-            print(f"Username not found. Invalid username or typo. Checking again in 5 minutes.")
-            time.sleep(300)
         elif status == 1:
             print(f"{self.username} currently offline, checking again in {self.refresh} seconds.")
             time.sleep(self.refresh)
@@ -298,19 +314,22 @@ class TwitchStreamRecorder:
             recorded_filename = os.path.join(self.recorded_path, filename)
 
             try:
-                streamlink_record = [self.streamlink] + self.streamlink_arg.split() + ["twitch.tv/" + self.username, "--default-stream", self.quality, "-o", recorded_filename]
+                cap = self.quality_caps.get(self.quality)
+                cap_args = ["--stream-sorting-excludes", cap] if cap else []
+                stream_selection = "best" if cap else self.quality
+                streamlink_record = [self.streamlink] + self.streamlink_arg.split() + cap_args + ["twitch.tv/" + self.username, "--default-stream", stream_selection, "-o", recorded_filename]
                 subprocess.run(streamlink_record, check=True, stdout=sys.stdout, stderr=sys.stderr, text=True)
             except subprocess.CalledProcessError as e:
-                print(f"Error during streamlink recording: {e.returncode}")
-                print(f"Standard error output: {e.stderr}")
-                print(f"Standard output: {e.stdout}")
+                print(f"Error during streamlink recording, streamlink exited with {e.returncode}")
 
-            if(os.path.exists(recorded_filename) is True):
+            if os.path.exists(recorded_filename):
                 self.executor.submit(self.fix_video_file, recorded_filename, filename)
             else:
-                print(f"Skip fixing. File not found.")
-                print(f"Fixing is done. Going back to checking..")
-                time.sleep(self.refresh)
+                print(f"Recording produced no file. Skipping post-processing.")
+            # Always pause before the next online check - without this a
+            # streamlink that fails instantly would hammer the API in a
+            # tight loop.
+            time.sleep(self.refresh)
 
 def main(argv):
     tsr = TwitchStreamRecorder()
@@ -329,13 +348,13 @@ Options:
                     If not specified, the default is 'best'.'''
 
     try:
-        opts, args = getopt.getopt(argv, "hu:q:a:s:", ["username=", "quality=", "audio=", "savefile="])
+        opts, args = getopt.getopt(argv, "hu:q:a:s:", ["help", "username=", "quality=", "audio=", "savefile="])
     except getopt.GetoptError:
         print (usage_message)
         sys.exit(2)
     
     for opt, arg in opts:
-        if opt == '-h':
+        if opt in ('-h', '--help'):
             print(usage_message)
             sys.exit()
         elif opt in ("-u", "--username"):
