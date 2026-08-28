@@ -1,7 +1,3 @@
-![GitHub](https://img.shields.io/github/license/DravenTec/Twitch-Stream-Recorder)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/DravenTec/Twitch-Stream-Recorder)
-![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/DravenTec/Twitch-Stream-Recorder)
-
 ## Twitch Stream Recorder (tsr.py)
 Twitch Stream Recorder is a Python script for recording live streams from Twitch.
 The script allows you to record the stream in various quality options, including audio-only,
