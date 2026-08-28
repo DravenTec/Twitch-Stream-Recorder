@@ -71,7 +71,7 @@ jobs:
           with open("payload.json", "w", encoding="utf-8") as fh:
               json.dump({
                   "tag_name": os.environ["TAG"],
-                  "name": f"Twitch Stream Recorder {os.environ['TAG']}",
+                  "name": os.environ["TAG"],
                   "body": open("release-notes.md", encoding="utf-8").read(),
                   "draft": False,
                   "prerelease": False,
