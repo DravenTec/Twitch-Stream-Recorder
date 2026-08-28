@@ -1,0 +1,111 @@
+# =============================================================================
+# Twitch Stream Recorder — Release Pipeline (Forgejo)
+# File: .forgejo/workflows/release.yml
+#
+# Runs when a tag v* is pushed. Steps:
+#   1. Check out the tagged commit
+#   2. Verify the tag matches the "# Version:" line in tsr.py
+#   3. Extract the release notes from CHANGELOG.md
+#   4. Create the release via the Forgejo API
+#   5. Attach tsr.py to it
+#
+# The GitHub counterpart lives in .github/workflows/ and uses the gh CLI;
+# the two are deliberately separate because gh cannot talk to Forgejo.
+# =============================================================================
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    name: Publish release
+    runs-on: ubuntu-24.04
+
+    steps:
+      # ── 1. Checkout ───────────────────────────────────────────────────────
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # ── 2. Tag and script version must agree ──────────────────────────────
+      - name: Verify tag matches the version in tsr.py
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(sed -n 's/^# Version: *//p' tsr.py | head -1 | tr -d '[:space:]')"
+          if [ -z "$version" ]; then
+            echo "No '# Version:' line found in tsr.py."
+            exit 1
+          fi
+          if [ "$tag" != "$version" ]; then
+            echo "Tag v${tag} does not match tsr.py (${version})."
+            echo "Update the version line (and CHANGELOG.md) before tagging."
+            exit 1
+          fi
+          echo "Version ${version} confirmed."
+
+      # ── 3. Release notes ──────────────────────────────────────────────────
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          awk -v ver="${GITHUB_REF_NAME#v}" '
+            $0 ~ "^## \\[" ver "\\]" { flag=1; next }
+            flag && /^## \[/ { exit }
+            flag { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "_No CHANGELOG section found for this version._" > release-notes.md
+          fi
+          printf '\n**Installation:** download `tsr.py` below and place it where\n' >> release-notes.md
+          printf 'the recorder services expect it.\n' >> release-notes.md
+
+      # ── 4. Create the release ─────────────────────────────────────────────
+      - name: Publish the release
+        env:
+          FORGEJO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          with open("payload.json", "w", encoding="utf-8") as fh:
+              json.dump({
+                  "tag_name": os.environ["TAG"],
+                  "name": f"Twitch Stream Recorder {os.environ['TAG']}",
+                  "body": open("release-notes.md", encoding="utf-8").read(),
+                  "draft": False,
+                  "prerelease": False,
+              }, fh)
+          PY
+          api="${GITHUB_API_URL:-${GITHUB_SERVER_URL}/api/v1}"
+          code=$(curl -sS -o response.json -w '%{http_code}' \
+            -X POST "${api}/repos/${GITHUB_REPOSITORY}/releases" \
+            -H "Authorization: Bearer ${FORGEJO_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data @payload.json)
+          if [ "$code" != "201" ]; then
+            echo "Forgejo API returned HTTP ${code}:"
+            cat response.json
+            exit 1
+          fi
+          python3 -c "import json;print(json.load(open('response.json'))['id'])" \
+            > release-id.txt
+          echo "Release created, id $(cat release-id.txt)."
+
+      # ── 5. Attach the script ──────────────────────────────────────────────
+      - name: Attach tsr.py to the release
+        env:
+          FORGEJO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          api="${GITHUB_API_URL:-${GITHUB_SERVER_URL}/api/v1}"
+          id="$(cat release-id.txt)"
+          code=$(curl -sS -o asset.json -w '%{http_code}' \
+            -X POST "${api}/repos/${GITHUB_REPOSITORY}/releases/${id}/assets?name=tsr.py" \
+            -H "Authorization: Bearer ${FORGEJO_TOKEN}" \
+            -F "attachment=@tsr.py")
+          if [ "$code" != "201" ]; then
+            echo "Asset upload returned HTTP ${code}:"
+            cat asset.json
+            exit 1
+          fi
+          echo "tsr.py attached."
