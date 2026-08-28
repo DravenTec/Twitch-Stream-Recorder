@@ -2,7 +2,7 @@
 
 # Twitch Stream Recorder (tsr.py)
 #
-# Version: 1.0.0
+# Version: 2.0.0
 # Developed by: DravenTec
 
 import os

@@ -8,12 +8,27 @@ Each `## [x.y.z]` section is what the release workflow publishes as the
 release notes for the matching `vx.y.z` tag, so keep the wording aimed at
 whoever downloads the script.
 
-## [1.0.0]
+## [2.0.0]
 
-Umstellung auf semantische Versionierung und erster veröffentlichter
-Release. Bis hierher trug `tsr.py` ein Datum als Versionskennung
-(zuletzt `15.08.2026-0050`); ab jetzt zählt `MAJOR.MINOR.PATCH`.
+Rückkehr zur semantischen Versionierung und erster Release, der
+automatisch entsteht.
 
-Inhaltlich unverändert gegenüber dem bisherigen Stand — der Schnitt ist
-rein organisatorisch: Ab dieser Version entsteht zu jedem Tag `v*`
-automatisch ein Release mit `tsr.py` als Anhang.
+Zwischen `v.1.2.0` (Juni 2023) und dieser Version liegen 29 Commits, die
+zwischenzeitlich unter Datums-Versionen wie `01.02.2026-1130`
+veröffentlicht wurden. Was in dieser Zeit dazugekommen ist:
+
+- Konfiguration über `~/.config/tsr/config`, dazu Umgebungsvariablen und
+  dokumentierte Kommandozeilenoptionen
+- Korrigierte Qualitätserkennung, robustere Fehlerauswertung und
+  aufgeräumtes Thread-Handling
+- Nachbearbeitung: `ffmpeg -y`, echtes AAC-Remux statt bloßer
+  Umbenennung, sauberes Aufräumen der Zwischendateien
+- README dokumentiert Optionen, Konfiguration und die Nachbearbeitung
+
+Der Sprung auf 2.0.0 markiert den Bruch im Versionsschema, nicht eine
+inkompatible Änderung am Skript selbst — die letzten Tags waren Daten,
+und `v1.x` ist auf dem GitHub-Spiegel bereits vergeben.
+
+Ab hier entsteht zu jedem Tag `v*` automatisch ein Release mit `tsr.py`
+als Anhang; der Workflow prüft dabei, dass Tag und Versionszeile in
+`tsr.py` übereinstimmen.
